@@ -16,9 +16,11 @@
       "@/tests/*": [
         "../tests/*"
       ],
-    }
+    },
+    "strict": true
   },
   "include": [
-    "src"
+    "src",
+    "tests"
   ]
 }

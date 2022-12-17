@@ -1,4 +1,4 @@
-import "../config/module-alias";
-import { Test } from "@/controller/person";
+import '../config/module-alias'
+import { Test } from '@/controller/person'
 
-console.log(Test);
+console.log(Test)
