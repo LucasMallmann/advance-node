@@ -9,6 +9,7 @@ describe('FacebookAuthenticationService', () => {
   let sut: FacebookAuthenticationService
   let loadFacebookUserApi: MockProxy<LoadFacebookUserApi>
   let loadUserAccountRepo: MockProxy<LoadUserAccountRepository>
+  let createUserAccountRepository: MockProxy<CreateUserAccountRepository>
 
   beforeEach(() => {
     loadFacebookUserApi = mock()
@@ -44,5 +45,16 @@ describe('FacebookAuthenticationService', () => {
       email: 'any_facebook_email'
     })
     expect(loadUserAccountRepo.load).toHaveBeenCalledTimes(1)
+  })
+
+  it('should call CreateUserAccountRepository if LoadUserAccountRepository returns undefined', async () => {
+    loadUserAccountRepo.load.mockResolvedValueOnce(undefined)
+    await sut.perform({ token: 'any_token' })
+    expect(createUserAccountRepository.create).toHaveBeenCalledWith({
+      name: 'any_facebok_name',
+      email: 'any_facebook_email',
+      facebookId: 'any_facebok_id'
+    })
+    expect(createUserAccountRepository.create).toHaveBeenCalledTimes(1)
   })
 })
