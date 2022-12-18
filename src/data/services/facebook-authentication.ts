@@ -1,6 +1,6 @@
 import { AuthenticationError } from '@/domain/errors'
 import { FacebookAuthentication } from '@/domain/features'
-import { LoadFacebookUserApi } from '../contracts/api/facebook'
+import { LoadFacebookUserApi } from '@/data/contracts/api'
 
 export class FacebookAuthenticationService implements FacebookAuthentication {
   constructor (private readonly loadFacebookUserApi: LoadFacebookUserApi) {}
