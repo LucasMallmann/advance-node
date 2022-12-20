@@ -2,17 +2,15 @@ import { AuthenticationError } from '@/domain/errors'
 import { FacebookAuthentication } from '@/domain/features'
 import { LoadFacebookUserApi } from '@/data/contracts/api'
 import {
-  CreateFacebookAccountRepository,
   LoadUserAccountRepository,
-  UpdateFacebookAccountRepository
+  SaveFacebookAccountRepository
 } from '@/data/contracts/repos'
 
 export class FacebookAuthenticationService implements FacebookAuthentication {
   constructor (
     private readonly facebookApi: LoadFacebookUserApi,
     private readonly userAccountRepository: LoadUserAccountRepository &
-    CreateFacebookAccountRepository &
-    UpdateFacebookAccountRepository
+    SaveFacebookAccountRepository
   ) {}
 
   async perform (
@@ -24,15 +22,12 @@ export class FacebookAuthenticationService implements FacebookAuthentication {
       const accountData = await this.userAccountRepository.load({
         email: fbData.email
       })
-      if (accountData?.name !== undefined) {
-        await this.userAccountRepository.updateWithFacebook({
-          id: accountData.id,
-          facebookId: fbData.facebookId,
-          name: accountData.name
-        })
-      } else {
-        await this.userAccountRepository.createFromFacebook(fbData)
-      }
+      await this.userAccountRepository.saveWithFacebook({
+        id: accountData?.id,
+        name: accountData?.name ?? fbData.name,
+        email: fbData.email,
+        facebookId: fbData.facebookId
+      })
     }
 
     return new AuthenticationError()
