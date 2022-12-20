@@ -1,5 +1,9 @@
 import { LoadFacebookUserApi } from '@/data/contracts/api'
-import { LoadUserAccountRepository } from '@/data/contracts/repos'
+import {
+  CreateFacebookAccountRepository,
+  LoadUserAccountRepository,
+  UpdateFacebookAccountRepository
+} from '@/data/contracts/repos'
 import { FacebookAuthenticationService } from '@/data/services/facebook-authentication'
 import { AuthenticationError } from '@/domain/errors'
 
@@ -7,54 +11,68 @@ import { mock, MockProxy } from 'jest-mock-extended'
 
 describe('FacebookAuthenticationService', () => {
   let sut: FacebookAuthenticationService
-  let loadFacebookUserApi: MockProxy<LoadFacebookUserApi>
-  let loadUserAccountRepo: MockProxy<LoadUserAccountRepository>
-  let createUserAccountRepository: MockProxy<CreateUserAccountRepository>
+  let facebookApi: MockProxy<LoadFacebookUserApi>
+  let userAccountRepository: MockProxy<
+  LoadUserAccountRepository &
+  CreateFacebookAccountRepository &
+  UpdateFacebookAccountRepository
+  >
 
   beforeEach(() => {
-    loadFacebookUserApi = mock()
-    loadFacebookUserApi.loadUser.mockResolvedValue({
+    facebookApi = mock()
+    facebookApi.loadUser.mockResolvedValue({
       name: 'any_facebok_name',
       email: 'any_facebook_email',
       facebookId: 'any_facebok_id'
     })
-    loadUserAccountRepo = mock()
-    sut = new FacebookAuthenticationService(
-      loadFacebookUserApi,
-      loadUserAccountRepo
-    )
+    userAccountRepository = mock()
+    sut = new FacebookAuthenticationService(facebookApi, userAccountRepository)
   })
 
   it('should call LoadFacebookUserApi with correct params', async () => {
     await sut.perform({ token: 'any_token' })
-    expect(loadFacebookUserApi.loadUser).toHaveBeenCalledWith({
+    expect(facebookApi.loadUser).toHaveBeenCalledWith({
       token: 'any_token'
     })
-    expect(loadFacebookUserApi.loadUser).toHaveBeenCalledTimes(1)
+    expect(facebookApi.loadUser).toHaveBeenCalledTimes(1)
   })
 
   it('should return AuthenticationError if LoadFacebookUserApi returns undefined', async () => {
-    loadFacebookUserApi.loadUser.mockResolvedValueOnce(undefined)
+    facebookApi.loadUser.mockResolvedValueOnce(undefined)
     const authResult = await sut.perform({ token: 'any_token' })
     expect(authResult).toEqual(new AuthenticationError())
   })
 
-  it('should call LoadUserByEmailRepo if LoadFacebookUserApi returns data', async () => {
+  it('should call LoadUserRepository if LoadFacebookUserApi returns data', async () => {
     await sut.perform({ token: 'any_token' })
-    expect(loadUserAccountRepo.load).toHaveBeenCalledWith({
+    expect(userAccountRepository.load).toHaveBeenCalledWith({
       email: 'any_facebook_email'
     })
-    expect(loadUserAccountRepo.load).toHaveBeenCalledTimes(1)
+    expect(userAccountRepository.load).toHaveBeenCalledTimes(1)
   })
 
-  it('should call CreateUserAccountRepository if LoadUserAccountRepository returns undefined', async () => {
-    loadUserAccountRepo.load.mockResolvedValueOnce(undefined)
+  it('should call CreateUserAccountRepository when LoadUserAccountRepository returns undefined', async () => {
+    userAccountRepository.load.mockResolvedValueOnce(undefined)
     await sut.perform({ token: 'any_token' })
-    expect(createUserAccountRepository.create).toHaveBeenCalledWith({
+    expect(userAccountRepository.createFromFacebook).toHaveBeenCalledWith({
       name: 'any_facebok_name',
       email: 'any_facebook_email',
       facebookId: 'any_facebok_id'
     })
-    expect(createUserAccountRepository.create).toHaveBeenCalledTimes(1)
+    expect(userAccountRepository.createFromFacebook).toHaveBeenCalledTimes(1)
+  })
+
+  it('should call UpdateUserAccountRepo when LoadUserAccountRepository returns data with name', async () => {
+    userAccountRepository.load.mockResolvedValueOnce({
+      id: 'any_id',
+      name: 'any_name'
+    })
+    await sut.perform({ token: 'any_token' })
+    expect(userAccountRepository.updateWithFacebook).toHaveBeenCalledWith({
+      id: 'any_id',
+      name: 'any_name',
+      facebookId: 'any_facebok_id'
+    })
+    expect(userAccountRepository.updateWithFacebook).toHaveBeenCalledTimes(1)
   })
 })
